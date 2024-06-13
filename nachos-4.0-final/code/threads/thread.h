@@ -92,7 +92,8 @@ class Thread {
 					// is called
 
     // basic thread operations
-
+    void setQueueLevel(int level) { queueLevel = level; }
+    int getQueueLevel() const { return queueLevel; }
     void Fork(VoidFunctionPtr func, void *arg); 
     				// Make thread run (*func)(arg)
     void Yield();  		// Relinquish the CPU if any 
@@ -148,6 +149,8 @@ class Thread {
     int RunTime;
     int RRTime;
     //<REPORT>
+    int queueLevel;
+
     void StackAllocate(VoidFunctionPtr func, void *arg);
     				// Allocate a stack for thread.
 				// Used internally by Fork()

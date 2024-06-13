@@ -1,11 +1,3 @@
-// userkernel.cc 
-//	Initialization and cleanup routines for the version of the
-//	Nachos kernel that supports running user programs.
-//
-// Copyright (c) 1992-1996 The Regents of the University of California.
-// All rights reserved.  See copyright.h for copyright notice and limitation 
-// of liability and disclaimer of warranty provisions.
-
 #include "copyright.h"
 #include "synchconsole.h"
 #include "userkernel.h"
@@ -14,66 +6,70 @@
 
 //----------------------------------------------------------------------
 // UserProgKernel::UserProgKernel
-// 	Interpret command line arguments in order to determine flags 
-//	for the initialization (see also comments in main.cc)  
+//  Interpret command line arguments in order to determine flags 
+//  for the initialization (see also comments in main.cc)  
 //----------------------------------------------------------------------
 
 UserProgKernel::UserProgKernel(int argc, char **argv) 
-		: ThreadedKernel(argc, argv)
+        : ThreadedKernel(argc, argv)
 {
     debugUserProg = FALSE;
     consoleIn = NULL;
     consoleOut = NULL;
     for (int i = 0; i < NumPhysPages; i++)
-        PhysicalPageUsed[NumPhysPages] = FALSE;
-	execfileNum = 0;
+        PhysicalPageUsed[i] = FALSE;  // Fixed index issue
+    execfileNum = 0;
     for (int i = 1; i < argc; i++) {
         if (strcmp(argv[i], "-s") == 0) {
-		    debugUserProg = TRUE;
-		}
-		else if (strcmp(argv[i], "-e") == 0) {
-			execfile[++execfileNum]= argv[++i];
-		}
-		//<TODO>
-        // Get execfile & its priority & burst time from argv, then save them.
-		else if (strcmp(argv[i], "-epb") == 0) {
+            debugUserProg = TRUE;
+        }
+        else if (strcmp(argv[i], "-e") == 0) {
             execfile[++execfileNum] = argv[++i];
-            threadPriority[execfileNum] = atoi(argv[++i]);
-            threadRemainingBurstTime[execfileNum] = atoi(argv[++i]);
-	    }
-	    //<TODO>
-	    else if (strcmp(argv[i], "-u") == 0) {
-			cout << "===========The following argument is defined in userkernel.cc" << endl;
-			cout << "Partial usage: nachos [-s]\n";
-			cout << "Partial usage: nachos [-u]" << endl;
-			cout << "Partial usage: nachos [-e] filename" << endl;
-		}
-		else if (strcmp(argv[i], "-h") == 0) {
-			cout << "argument 's' is for debugging. Machine status  will be printed " << endl;
-			cout << "argument 'e' is for execting file." << endl;
-			cout << "atgument 'u' will print all argument usage." << endl;
-			cout << "For example:" << endl;
-			cout << "	./nachos -s : Print machine status during the machine is on." << endl;
-			cout << "	./nachos -e file1 -e file2 : executing file1 and file2."  << endl;
-		}
+        }
+        //<TODO>
+        // Get execfile & its priority & burst time from argv, then save them.
+        else if (strcmp(argv[i], "-epb") == 0) {
+            if (i + 3 < argc) {
+                execfile[++execfileNum] = argv[++i];
+                threadPriority[execfileNum] = atoi(argv[++i]);
+                threadRemainingBurstTime[execfileNum] = atoi(argv[++i]);
+            } else {
+                cerr << "Error: Invalid arguments for -epb option" << endl;
+                exit(1);
+            }
+        }
+        //<TODO>
+        else if (strcmp(argv[i], "-u") == 0) {
+            cout << "===========The following argument is defined in userkernel.cc" << endl;
+            cout << "Partial usage: nachos [-s]\n";
+            cout << "Partial usage: nachos [-u]" << endl;
+            cout << "Partial usage: nachos [-e] filename" << endl;
+        }
+        else if (strcmp(argv[i], "-h") == 0) {
+            cout << "argument 's' is for debugging. Machine status  will be printed " << endl;
+            cout << "argument 'e' is for executing file." << endl;
+            cout << "argument 'u' will print all argument usage." << endl;
+            cout << "For example:" << endl;
+            cout << " ./nachos -s : Print machine status during the machine is on." << endl;
+            cout << " ./nachos -e file1 -e file2 : executing file1 and file2."  << endl;
+        }
     }
 }
 
 //----------------------------------------------------------------------
 // UserProgKernel::Initialize
-// 	Initialize Nachos global data structures.
+//  Initialize Nachos global data structures.
 //----------------------------------------------------------------------
 
 void
 UserProgKernel::Initialize()
 {
-    ThreadedKernel::Initialize();	// init multithreading
+    ThreadedKernel::Initialize();    // init multithreading
 
     machine = new Machine(debugUserProg);
     fileSystem = new FileSystem();
 
-
-    currentThread = new Thread("main", threadNum++);	
+    currentThread = new Thread("main", threadNum++);    
     synchConsoleIn = new SynchConsoleInput(consoleIn);
     synchConsoleOut = new SynchConsoleOutput(consoleOut);  
 
@@ -81,15 +77,15 @@ UserProgKernel::Initialize()
 
     interrupt->Enable();
     
-	#ifdef FILESYS
-	    synchDisk = new SynchDisk("New SynchDisk");
-	#endif // FILESYS
+    #ifdef FILESYS
+        synchDisk = new SynchDisk("New SynchDisk");
+    #endif // FILESYS
 }
 
 //----------------------------------------------------------------------
 // UserProgKernel::~UserProgKernel
-// 	Nachos is halting.  De-allocate global data structures.
-//	Automatically calls destructor on base class.
+//  Nachos is halting.  De-allocate global data structures.
+//  Automatically calls destructor on base class.
 //----------------------------------------------------------------------
 
 UserProgKernel::~UserProgKernel()
@@ -105,34 +101,14 @@ UserProgKernel::~UserProgKernel()
 
 //----------------------------------------------------------------------
 // UserProgKernel::Run
-// 	Run the Nachos kernel.  For now, just run the "halt" program. 
+//  Run the Nachos kernel.  For now, just run the "halt" program. 
 //----------------------------------------------------------------------
 void
 UserProgKernel::Run()
 {
-
-	/*cout << "Total threads number is " << execfileNum << endl;
-	for (int n=1;n<=execfileNum;n++)
-	{
-		t[n] = new Thread(execfile[n]);
-		t[n]->space = new AddrSpace();
-		t[n]->Fork((VoidFunctionPtr) &ForkExecute, (void *)t[n]);
-		cout << "Thread " << execfile[n] << " is executing." << endl;
-	}*/
-//	Thread *t1 = new Thread(execfile[1]);
-//	Thread *t1 = new Thread("../test/test1");
-//	Thread *t2 = new Thread("../test/test2");
-
-//    AddrSpace *halt = new AddrSpace();
-//	t1->space = new AddrSpace();
-//	t2->space = new AddrSpace();
-
-//    halt->Execute("../test/halt");
-//	t1->Fork((VoidFunctionPtr) &ForkExecute, (void *)t1);
-//	t2->Fork((VoidFunctionPtr) &ForkExecute, (void *)t2);
+    InitializeAllThreads();  // Start all threads
 
     // ThreadedKernel::Run();
-//	cout << "after ThreadedKernel:Run();" << endl;	// unreachable
 }
 
 //----------------------------------------------------------------------
@@ -149,16 +125,16 @@ UserProgKernel::SelfTest() {
     // test out the console device
 
     cout << "Testing the console device.\n" 
-	<< "Typed characters will be echoed, until q is typed.\n"
-    	<< "Note newlines are needed to flush input through UNIX.\n";
+    << "Typed characters will be echoed, until q is typed.\n"
+        << "Note newlines are needed to flush input through UNIX.\n";
     cout.flush();
 
     SynchConsoleInput *input = new SynchConsoleInput(NULL);
     SynchConsoleOutput *output = new SynchConsoleOutput(NULL);
 
     do {
-    	ch = input->GetChar();
-    	output->PutChar(ch);   // echo it!
+        ch = input->GetChar();
+        output->PutChar(ch);   // echo it!
     } while (ch != 'q');
 
     cout << "\n";
@@ -166,8 +142,7 @@ UserProgKernel::SelfTest() {
     // self test for running user programs is to run the halt program above
 */
 
-
-//	cout << "This is self test message from UserProgKernel\n" ;
+//  cout << "This is self test message from UserProgKernel\n" ;
 }
 
 
@@ -178,8 +153,8 @@ ForkExecute(Thread *t)
     //<TODO>
     // When Thread t goes to Running state in the first time, its file should be loaded & executed.
     // Hint: This function would not be called until Thread t is on running state.
-    //<TODO>
     t->space->Execute(t->getName());
+    //<TODO>
 }
 
 int 
@@ -188,11 +163,12 @@ UserProgKernel::InitializeOneThread(char* name, int priority, int burst_time)
     //<TODO>
     // When each execfile comes to Exec function, Kernel helps to create a thread for it.
     // While creating a new thread, thread should be initialized, and then forked.
-    t[threadNum] = new Thread(name);
-    t[threadNum]->setPriority(priority);
-    t[threadNum]->setRemainingBurstTime(burst_time);
-    t[threadNum]->space = new AddrSpace();
-    t[threadNum]->Fork((VoidFunctionPtr) &ForkExecute, (void *)t[threadNum]);
+    Thread *newThread = new Thread(name);
+    newThread->setPriority(priority);
+    newThread->setRemainingBurstTime(burst_time);
+    newThread->space = new AddrSpace();
+    newThread->Fork((VoidFunctionPtr) &ForkExecute, (void *)newThread);
+    t[threadNum] = newThread;
     //<TODO>
 
     threadNum++;
